@@ -1,1 +1,410 @@
+/*******************************************************************************
+ * Name    : waterjugpuzzle.cpp
+ * Author  : Rosa Taveras and Sophie Fortunato
+ * Date    : 3/6/2022
+ * Pledge : I pledge my honor that I have abided by the Stevens Honor System.
+ ******************************************************************************/
+#include <iostream>
+#include <sstream>
+#include <queue>
+#include <algorithm>
+#include <stack>
 
+using namespace std;
+
+
+// Struct to represent state of water in the jugs.
+struct State {
+    int a, b, c;
+    string directions;
+    State *parent;
+
+    State() {
+        a = 0;
+        b = 0;
+        c = 0;
+        parent = nullptr;
+    }
+
+    State(int _a, int _b, int _c , string _directions) : 
+        a{_a}, b{_b}, c{_c}, directions{_directions}, parent{nullptr} { }
+    
+    // String representation of state in tuple form.
+    string to_string() {
+        ostringstream oss;
+        oss << directions << " (" << a << ", " << b << ", " << c << ")";
+        return oss.str();
+    }
+
+};
+
+
+
+
+
+void waterJug( int capA, int capB, int capC, int goalA, int goalB, int goalC) {
+    //State s(0,0,8, inital state)    s.a = 0, s.b = 0, s.c = 8
+    //make sure you update the state if the calcuation is done and add to queue (if not already there)
+    //a=3, b = 5, c = 8
+
+    queue<State*> allStates;
+    queue<State*> queue;    //create vector for queue
+    stack<State*> stack;
+    // State s(0,0,goalA + goalB + goalC, "initial state");    //create initial state
+
+    State* s = new State(0,0,capC,"Initial state.");
+    queue.push(s);     //push initial state to queue
+    allStates.push(s);
+
+    //simulate 2D array
+    State* **array = new State**[capA + 1];  //declare array with A+1 rows 
+    for(int i =0; i < capA + 1; i++) {
+        array[i]= new State*[capB + 1];   //declare another array with B+1 rows
+        fill(array[i], array[i] + (capB + 1), nullptr); 
+    }
+    
+    while (!queue.empty()){
+        State* current = queue.front();  //set current selection to 1st queue element
+        
+
+        if ((current->a == goalA) && (current->b == goalB) && (current->c == goalC)){//if current == goal
+            //return backtraced soln
+            //while there is a parent pointer, print out results 
+            array[goalA][goalB] = current;
+            cout << s->to_string() <<endl;
+            
+            while (current->parent != nullptr){
+                //add each element to stack
+                stack.push(current);
+                current = current->parent;    //change current to whatever the parent pointer is
+            }
+            //stack.push(s);
+            //add the first element to stack 
+            // (0,5,3) (3,2,3) (0,2,6) (0,0,8)
+            //print the stuff 
+            while (!stack.empty()){
+                cout << stack.top()->to_string() << endl;
+                //State* front = stack.top();
+                stack.pop();
+                //delete front;
+            }
+            
+            break;
+            
+        }
+        if (array[current->a][current->b] != nullptr){
+            //if this was already seen, we have to move to next element in queue
+            //State* front = queue.front();
+            queue.pop();
+            //delete front;
+            continue;
+        }
+        else{
+            //State* State* temp = nullptr;
+            //(0,0,8)
+            if (current->a != capA && current->c != 0) {   //c to a if a isnt full and c isnt empty 0,0,8   3,0,5    current.c - temp.c
+                
+                State* temp = new State(current->a, current->b, current->c,"initial");
+                if (current->c < (capA -current->a)){
+                    temp->c = 0;
+                    temp->a = current->a + current->c;
+                }
+                else{
+                    temp->c = current->c - (capA - current->a);
+                    temp->a = current->a + (current->c - temp->c);
+                }
+                temp->parent = current;   //make parent equal to address of current state
+                int difference = current->c - temp->c;
+                if (difference == 1){
+                    temp->directions = "Pour " + to_string(difference) + " gallon from C to A.";
+                }
+                else{
+                    temp->directions = "Pour " + to_string(difference) + " gallons from C to A.";
+                }
+                difference = 0;
+                if (array[temp->a][temp->b] == nullptr){
+                    //if the value wasn't already explored, push to queue
+                    queue.push(temp);
+                    allStates.push(temp);
+                } else
+                    delete temp;
+            }
+
+            //if b isnt empty and a isnt full 
+            if (current->b != 0 && current->a != capA){    //transfer B to A 0,5,3     3,2,3    current.b - temp.b  0 3 5   3 0 5  
+                
+                State* temp = new State(current->a, current->b, current->c,"initial");
+                if (current->b < (capA - current->a)){
+                    temp->b = 0; 
+                    temp->a = current->a + current->b;
+                }
+                else {
+                    temp->b = current->b - (capA - current->a);
+                    temp->a = current->a + (current->b - temp->b);
+                }
+                //if thing in the array IS null, it hasn't been explored yet 
+                //if it has not been explored, add parent pointer, and add state to vector queue
+                temp->parent = current;   //make parent equal to address of current state
+                int difference = current->b - temp->b;
+                if (difference == 1) {
+                    temp->directions = "Pour " + to_string(difference) + " gallon from B to A.";
+                }
+                else{
+                    temp->directions = "Pour " + to_string(difference) + " gallons from B to A.";
+                }
+                difference = 0;
+                if (array[temp->a][temp->b] == nullptr){
+                    //if the value wasn't already explored, push to queue
+                    queue.push(temp);
+                    allStates.push(temp);
+                } else {
+                    delete temp;
+                }
+            }
+
+            if(current->c != 0 && current->b != capB){        //c to b    0,0,8    0,5,3   current.c - temp.c
+                
+                State* temp = new State(current->a, current->b, current->c,"initial");
+                if (current->c < (capB - current->b)){
+                    temp->c = 0; 
+                    temp->b = current->c + current->b;
+                }
+                else {
+                    temp->c = current->c - (capB - current->b);
+                    temp->b = current->b + (current->c - temp->c);
+                }
+                //check if new state is in queue, if not, create it and add it
+                //if thing in the array IS null, it hasn't been explored yet 
+                //if it has not been explored, add parent pointer, and add state to vector queue
+                temp->parent = current;   //make parent equal to address of current state
+                int difference = current->c - temp->c;
+                if (difference == 1){
+                    temp->directions = "Pour " + to_string(difference) + " gallon from C to B.";
+                }
+                else{
+                    temp->directions = "Pour " + to_string(difference) + " gallons from C to B.";
+                }
+                difference = 0;
+                if (array[temp->a][temp->b] == nullptr){
+                    //if the value wasn't already explored, push to queue
+                    queue.push(temp);
+                    allStates.push(temp);
+                } else {
+                    delete temp;
+                }
+            }  
+
+            if (current->a != 0 && current->b != capB){   //a to b    3,0,5     0,3,5    current.a - temp.a
+        
+                State* temp = new State(current->a, current->b, current->c,"initial");
+                if (current->a < (capB - current->b)){
+                    temp->a = 0;
+                    temp->b = current->a + current->b;
+                }
+                else{
+                    temp->a = current->a - (capB - current->b);
+                    temp->b = current->b + (current->a - temp->a);
+                }
+                //check if new state is in queue, if not, create it and add it
+                //if thing in the array IS null, it hasn't been explored yet 
+                //if it has not been explored, add parent pointer, and add state to vector queue
+                temp->parent = current;   //make parent equal to address of current state
+                int difference = current->a - temp->a;
+                if (difference == 1){
+                    temp->directions = "Pour " + to_string(difference) + " gallon from A to B.";
+                }
+                else{
+                    temp->directions = "Pour " + to_string(difference) + " gallons from A to B.";
+                }
+                difference = 0;
+                if (array[temp->a][temp->b] == nullptr){
+                    //if the value wasn't already explored, push to queue
+                    queue.push(temp);
+                    allStates.push(temp);
+                } else{
+                    delete temp;
+                }
+            }  
+
+            if (current->b != 0 && current->c != capC) {   //b to c
+                
+                State* temp = new State(current->a, current->b, current->c,"initial");
+                if (current->b < (capC - current->c)) {
+                    temp->b = 0;
+                    temp->c = current->c + current->b;
+                }
+                else {
+                    temp->b = current->b - (capC - current->c);
+                    temp->c = current->c + (current->b - temp->b);
+                }
+                //check if new state is in queue, if not, create it and add it
+                //if thing in the array IS null, it hasn't been explored yet 
+                //if it has not been explored, add parent pointer, and add state to vector queue
+                temp->parent = current;   //make parent equal to address of current state
+                int difference = current->b - temp->b;
+                if (difference == 1){
+                    temp->directions = "Pour " + to_string(difference) + " gallon from B to C.";
+                }
+                else {
+                    temp->directions = "Pour " + to_string(difference) + " gallons from B to C.";
+                }
+                difference = 0;
+                if (array[temp->a][temp->b] == nullptr){
+                    //if the value wasn't already explored, push to queue
+                    queue.push(temp);
+                    allStates.push(temp);
+                } else {
+                    delete temp;
+                }
+            }
+
+
+            if (current->a != 0 && current->c != capC){    //a to c 
+                State* temp = new State(current->a, current->b, current->c,"initial");
+                if (current->a < (capC - current->c)){
+                    temp->a = 0;
+                    temp->c = current->a + current->c;
+                }
+                else{
+                    temp->a = current->a - (capC - current->c);
+                    temp->c = current->c + (current->a - temp->a);
+                }
+                //check if new state is in queue, if not, create it and add it
+                //if thing in the array IS null, it hasn't been explored yet 
+                //if it has not been explored, add parent pointer, and add state to vector queue
+                temp->parent = current;   //make parent equal to address of current state
+                int difference = current->a - temp->a;
+                if (difference == 1){
+                    temp->directions = "Pour " + to_string(difference) + " gallon from A to C.";
+                }
+                else{
+                    temp->directions = "Pour " + to_string(difference) + " gallons from A to C.";
+                }
+                difference = 0;
+                if (array[temp->a][temp->b] == nullptr){
+                    //if the value wasn't already explored, push to queue
+                    queue.push(temp);
+                    allStates.push(temp);
+                } else{
+                    delete temp;
+                }
+            }
+            
+            array[current->a][current->b] = current;
+            
+            //State* del = queue.front();
+            queue.pop();     //erase first element in queuef   
+            //delete del; 
+            //delete temp;
+        }
+    }
+
+    if (array[goalA][goalB] == nullptr){
+        cout << "No solution." << endl;
+    }
+
+    for(int i = 0; i < capA + 1; i++) {
+        // for(int j = 0; j < capB + 1; j++){
+        //     if(array[i][j] != nullptr)
+        //         delete array[i][j];
+        // }
+        delete [] array[i];
+    }
+    delete [] array;
+
+    while(!allStates.empty()){
+        State* front = allStates.front();
+        allStates.pop();
+        delete front;
+    }
+    //delete s;
+}
+
+
+int main(int argc, char * const argv[]){
+
+    stringstream iss;
+    int capA, capB, capC, goalA, goalB, goalC;
+
+    if (argc != 7){
+        cerr << "Usage: ./waterjugpuzzle <cap A> <cap B> <cap C> <goal A> <goal B> <goal C>" <<endl;
+        return 1;
+    }
+
+    iss.str(argv[1]);   //get first command line argument
+
+    if (!(iss >> capA) || capA <= 0) { 
+		cerr << "Error: Invalid capacity '"<< argv[1] <<"' for jug A." << endl;
+		return 1;
+	}   
+
+    iss.clear();
+
+    iss.str(argv[2]);   //get second command line argument
+
+    if (!(iss >> capB) || capB <= 0) { 
+		cerr << "Error: Invalid capacity '"<< argv[2] <<"' for jug B." << endl;
+		return 1;
+	}   
+
+    iss.clear();
+
+    iss.str(argv[3]);   //get third command line argument
+
+    if (!(iss >> capC) || capC <= 0) { 
+		cerr << "Error: Invalid capacity '"<< argv[3] <<"' for jug C." << endl;
+		return 1;
+	}   
+
+    iss.clear();
+
+    iss.str(argv[4]);   //get fourth command line argument
+
+    if (!(iss >> goalA) || goalA < 0) { 
+		cerr << "Error: Invalid goal '"<< argv[4] <<"' for jug A." << endl;
+		return 1;
+	}   
+
+    iss.clear();
+
+    iss.str(argv[5]);   //get fifth command line argument
+
+    if (!(iss >> goalB) || (goalB < 0)) { 
+		cerr << "Error: Invalid goal '"<< argv[5] <<"' for jug B." << endl;
+		return 1;
+	}   
+
+    iss.clear();
+
+    iss.str(argv[6]);   //get sixth command line argument
+
+    if (!(iss >> goalC) || (goalC < 0)) { 
+		cerr << "Error: Invalid goal '"<< argv[6] <<"' for jug C." << endl;
+		return 1;
+	}   
+
+    iss.clear();
+
+    if (goalA > capA) {
+        cerr << "Error: Goal cannot exceed capacity of jug A." << endl;
+        return 1;
+    }
+    else if (goalB > capB){
+        cerr << "Error: Goal cannot exceed capacity of jug B." << endl;
+        return 1;
+    }
+    else if (goalC > capC){
+        cerr << "Error: Goal cannot exceed capacity of jug C." << endl;
+        return 1;
+    }
+
+    if (goalA + goalB + goalC != capC){
+        cerr << "Error: Total gallons in goal state must be equal to the capacity of jug C." <<endl;
+        return 1;
+    } 
+
+    waterJug(capA, capB, capC, goalA, goalB, goalC); 
+    return 0;
+    
+
+}
